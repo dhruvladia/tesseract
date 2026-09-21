@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  cpu-features: false
+
+# pnpm 12 defaults to a 24h supply-chain quarantine; relaxed so fresh patch releases install.
+minimumReleaseAge: 0

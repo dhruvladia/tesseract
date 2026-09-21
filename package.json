@@ -1,0 +1,29 @@
+{
+  "name": "tesseract",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source engagement tracker for Forward Deployed Engineering teams",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dhruvladia/tesseract.git"
+  },
+  "homepage": "https://github.com/dhruvladia/tesseract#readme",
+  "bugs": "https://github.com/dhruvladia/tesseract/issues",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=12"
+  },
+  "packageManager": "pnpm@12.5.1",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @tesseract/api db:generate",
+    "db:seed": "pnpm --filter @tesseract/api db:seed"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

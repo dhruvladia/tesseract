@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+
+# embedded postgres data (PGlite) and volumes
+data/
+apps/api/data/
