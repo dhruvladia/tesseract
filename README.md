@@ -4,6 +4,8 @@
 
 An open-source engagement tracker for Forward Deployed Engineering teams. Linear-shaped, but the unit of work is a **customer engagement** that moves through a **pre-sales** pipeline, converts through a **structured handoff**, then moves through a **post-sales** pipeline until it is handed to Customer Success. Built for teams at model labs, AI startups, and FDE agencies who work with sales, product, and customer success on the same accounts.
 
+![Post-sales board: Kickoff, Build, Validate, Live, Adopt, Handed Off, with attention dots and the agent button](docs/postsales-board.png)
+
 ## Why this exists
 
 FDE work does not fit an issue tracker or a CRM:
@@ -59,6 +61,8 @@ The handoff record is Tesseract's strongest feature and also the most administra
 
 The boundary is deliberate: **the model proposes, an accountable person accepts commitments and verifies outcomes.** Every generation and application is logged, so the Metrics page can show how many proposed items people actually kept.
 
+![An accepted pre-sales to post-sales handoff. Each section carries the quotes it was built from; green chips were verified against the notes, red ones were not.](docs/handoff-evidence.png)
+
 Bring your own model. Set on the API:
 
 ```bash
@@ -78,6 +82,8 @@ Leave `LLM_PROVIDER` unset and every AI surface (drafts, agent, voice) disappear
 With a model configured, a small beam-ringed button appears bottom-right (or press `⌘J`). Type, or press the mic, speak, and press it again.
 
 It can operate everything a person can from the UI: accounts and stakeholders, engagements and their team, phase moves, threads, issues and comments, labels, handoff sections and gaps (mark, add, assign, resolve, accept, reopen), outcomes and milestones, product gaps and their links, member roles, and the draft-from-notes flow. It sees the page you are on, so "this engagement" resolves.
+
+![The agent on an engagement page. A chained request produced one lookup and a card: Move Claims triage agent (NWB) to Validate, with Deny and Approve.](docs/agent-approval.png)
 
 - **Reads are free.** "What needs attention today?", "summarize the Claims triage agent engagement", "which gaps block Meridian?" run immediately; the lookups are shown collapsed under the answer.
 - **Writes wait for you.** Every create, update, phase move, acceptance, or delete produces a card such as *Move Claims triage agent (NWB) to Validate* or *Delete thread "Discovery" and all its issues. This cannot be undone.* Nothing happens until you press Approve. Deny and the agent says so and stops.
