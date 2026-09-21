@@ -228,12 +228,13 @@ export async function seedDemo() {
 
   // ---- handoffs ----
   const confirmed = (notes: string) => ({ state: 'confirmed' as const, notes })
-  await db.insert(schema.handoff).values([
+  const handoffs = await db.insert(schema.handoff).values([
     {
       organizationId: orgId,
       engagementId: claims.id,
       kind: 'pre_to_post',
       createdById: diego,
+      createdAt: daysAgo(44),
       acceptedById: maya,
       acceptedAt: daysAgo(41),
       sections: {
@@ -256,6 +257,7 @@ export async function seedDemo() {
       engagementId: priorAuth.id,
       kind: 'pre_to_post',
       createdById: diego,
+      createdAt: daysAgo(103),
       acceptedById: maya,
       acceptedAt: daysAgo(100),
       sections: Object.fromEntries(
@@ -268,6 +270,7 @@ export async function seedDemo() {
       engagementId: priorAuth.id,
       kind: 'post_to_cs',
       createdById: linus,
+      createdAt: daysAgo(6),
       sections: {
         customer_overview: confirmed('14-site network. Prior-auth team of 22.'),
         goals_success_criteria: confirmed('70% no-edit letters, 8h turnaround. Currently 61% / 9h.'),
@@ -284,6 +287,56 @@ export async function seedDemo() {
         { id: 'g-mrd-3', title: 'Monitoring dashboard access for CS', severity: 'low', ownerId: null, resolvedAt: null },
       ],
     },
+  ]).returning({ id: schema.handoff.id, engagementId: schema.handoff.engagementId, kind: schema.handoff.kind })
+
+  // ---- lifecycle events (what the metrics page reads) ----
+  const pe = (engagementId: string, steps: [from: (typeof schema.phaseEvent.$inferInsert)['from'], to: (typeof schema.phaseEvent.$inferInsert)['to'], daysBack: number][], actorId: string) =>
+    steps.map(([from, to, d]) => ({ organizationId: orgId, engagementId, from, to, actorId, createdAt: daysAgo(d) }))
+  await db.insert(schema.phaseEvent).values([
+    ...pe(claims.id, [['qualify', 'discover', 62], ['discover', 'scope', 56], ['scope', 'prototype', 52], ['prototype', 'technical_win', 46], ['technical_win', 'kickoff', 40], ['kickoff', 'build', 9]], grace),
+    ...pe(fraud.id, [['qualify', 'discover', 6]], linus),
+    ...pe(outage.id, [['qualify', 'discover', 18], ['discover', 'scope', 10], ['scope', 'prototype', 3]], grace),
+    ...pe(priorAuth.id, [['qualify', 'discover', 110], ['discover', 'scope', 107], ['scope', 'prototype', 105], ['prototype', 'technical_win', 104], ['technical_win', 'kickoff', 99], ['kickoff', 'build', 92], ['build', 'validate', 70], ['validate', 'live', 50], ['live', 'adopt', 18]], linus),
+    ...pe(coding.id, [['kickoff', 'build', 62], ['build', 'validate', 30], ['validate', 'live', 12]], linus),
+    ...pe(dispatch.id, [['qualify', 'discover', 36], ['discover', 'scope', 24]], linus),
+  ])
+
+  const hoNwb = handoffs.find((h) => h.engagementId === claims.id && h.kind === 'pre_to_post')!
+  const hoMrdPre = handoffs.find((h) => h.engagementId === priorAuth.id && h.kind === 'pre_to_post')!
+  const hoMrdCs = handoffs.find((h) => h.engagementId === priorAuth.id && h.kind === 'post_to_cs')!
+  const he = (h: { id: string; engagementId: string; kind: 'pre_to_post' | 'post_to_cs' }, event: (typeof schema.handoffEvent.$inferInsert)['event'], daysBack: number, actorId: string, meta?: Record<string, unknown>) => ({
+    organizationId: orgId,
+    handoffId: h.id,
+    engagementId: h.engagementId,
+    kind: h.kind,
+    event,
+    actorId,
+    meta,
+    createdAt: daysAgo(daysBack),
+  })
+  const sectionKeys = ['customer_overview', 'goals_success_criteria', 'use_cases_scope', 'configuration_requirements', 'integrations_constraints', 'stakeholders_roles', 'timeline_milestones', 'risks_open_questions']
+  await db.insert(schema.handoffEvent).values([
+    he(hoNwb, 'created', 44, diego),
+    ...sectionKeys.map((k, i) => he(hoNwb, 'section_marked', 44 - i * 0.25, diego, { section: k, state: k === 'risks_open_questions' ? 'unclear' : 'confirmed', from: null })),
+    he(hoNwb, 'gap_added', 44, diego, { gapId: 'g-nwb-2', severity: 'blocking', title: 'InfoSec approval for nightly extract', afterAcceptance: false }),
+    he(hoNwb, 'gap_added', 43, grace, { gapId: 'g-nwb-1', severity: 'high', title: 'Confirm scanned-PDF share of intake', afterAcceptance: false }),
+    he(hoNwb, 'gap_resolved', 42, diego, { gapId: 'g-nwb-2', severity: 'blocking' }),
+    he(hoNwb, 'accepted', 41, maya, { thinConfirmations: 0, confirmed: 7, unclear: 1, openGaps: 1 }),
+    he(hoNwb, 'gap_resolved', 35, grace, { gapId: 'g-nwb-1', severity: 'high' }),
+    // the Meridian pre-sales handoff was rubber-stamped: every section "confirmed" with a 15-char note
+    he(hoMrdPre, 'created', 103, diego),
+    ...sectionKeys.map((k) => he(hoMrdPre, 'section_marked', 102, diego, { section: k, state: 'confirmed', from: null })),
+    he(hoMrdPre, 'accepted', 100, maya, { thinConfirmations: 8, confirmed: 8, unclear: 0, openGaps: 0 }),
+    // ...and the team paid for it after kickoff
+    he(hoMrdPre, 'reopened', 96, maya),
+    he(hoMrdPre, 'gap_added', 96, linus, { gapId: 'g-mrd-late-1', severity: 'high', title: 'Epic integration engine access was never scoped', afterAcceptance: true }),
+    he(hoMrdPre, 'gap_added', 95, linus, { gapId: 'g-mrd-late-2', severity: 'medium', title: 'Two sites still on fax', afterAcceptance: true }),
+    he(hoMrdPre, 'accepted', 93, maya, { thinConfirmations: 2, confirmed: 6, unclear: 2, openGaps: 2 }),
+    he(hoMrdCs, 'created', 6, linus),
+    ...sectionKeys.map((k, i) => he(hoMrdCs, 'section_marked', 6 - i * 0.1, linus, { section: k, state: ['stakeholders_roles', 'risks_open_questions'].includes(k) ? 'unclear' : 'confirmed', from: null })),
+    he(hoMrdCs, 'gap_added', 5, linus, { gapId: 'g-mrd-1', severity: 'blocking', title: 'Name the post-handoff technical owner', afterAcceptance: false }),
+    he(hoMrdCs, 'gap_added', 5, priya, { gapId: 'g-mrd-2', severity: 'medium', title: 'Fax-only sites: interim process', afterAcceptance: false }),
+    he(hoMrdCs, 'gap_added', 4, linus, { gapId: 'g-mrd-3', severity: 'low', title: 'Monitoring dashboard access for CS', afterAcceptance: false }),
   ])
 
   // ---- threads + issues ----

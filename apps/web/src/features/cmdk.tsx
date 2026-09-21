@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { PHASE_LABELS, canTransition, phasesFor, type IssueStatus, type Phase } from '@tesseract/shared'
-import { Building2, ChevronRight, Inbox, Layers, Plus, Radar, Rocket, Settings, Sparkles, UserPlus } from 'lucide-react'
+import { BarChart3, Bell, Building2, ChevronRight, Inbox, Layers, Plus, Radar, Rocket, Settings, Sparkles, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { StatusIcon } from './issues/icons'
 import { useOpenNewIssue } from './issues/new-issue-dialog'
@@ -161,12 +161,14 @@ export function CommandPalette() {
             </CommandGroup>
             <CommandGroup heading="Go to">
               {[
+                { to: '/attention', label: 'Attention', icon: Bell },
                 { to: '/presales', label: 'Pre-sales board', icon: Radar },
                 { to: '/postsales', label: 'Post-sales board', icon: Rocket },
                 { to: '/accounts', label: 'Accounts', icon: Building2 },
                 { to: '/issues', label: 'My issues', icon: Inbox },
                 { to: '/threads', label: 'Threads', icon: Layers },
                 { to: '/gaps', label: 'Product gaps', icon: Sparkles },
+                { to: '/metrics', label: 'Metrics', icon: BarChart3 },
                 { to: '/settings', label: 'Settings', icon: Settings },
               ].map((n) => (
                 <CommandItem key={n.to} value={`go ${n.label}`} onSelect={go(() => navigate({ to: n.to }))}>

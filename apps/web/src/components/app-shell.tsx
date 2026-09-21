@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Building2, Inbox, Layers, LogOut, Radar, Rocket, Settings, Sparkles } from 'lucide-react'
+import { BarChart3, Bell, Building2, Inbox, Layers, LogOut, Radar, Rocket, Settings, Sparkles } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from 'cn'
 import { Logo } from './auth-shell'
@@ -8,20 +8,24 @@ import { Button } from './ui/button'
 import { Kbd } from './ui/kbd'
 import { authClient } from '@/lib/auth-client'
 import { useMe } from '@/lib/me'
+import { useMyAttention } from '@/lib/queries-attention'
 
 const nav = [
+  { to: '/attention', label: 'Attention', icon: Bell },
   { to: '/presales', label: 'Pre-sales', icon: Radar, tone: 'text-presales' },
   { to: '/postsales', label: 'Post-sales', icon: Rocket, tone: 'text-postsales' },
   { to: '/accounts', label: 'Accounts', icon: Building2 },
   { to: '/issues', label: 'My issues', icon: Inbox },
   { to: '/threads', label: 'Threads', icon: Layers },
   { to: '/gaps', label: 'Product gaps', icon: Sparkles },
+  { to: '/metrics', label: 'Metrics', icon: BarChart3 },
 ] as const
 
 export function AppShell({ children }: { children: ReactNode }) {
   const me = useMe()
   const navigate = useNavigate()
   const self = me.members.find((m) => m.userId === me.userId)
+  const { mine, all } = useMyAttention()
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
@@ -47,7 +51,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               activeProps={{ className: 'bg-sidebar-accent text-sidebar-foreground' }}
             >
               <n.icon className={cn('size-4', 'tone' in n ? n.tone : 'text-muted-foreground')} />
-              {n.label}
+              <span className="flex-1">{n.label}</span>
+              {n.to === '/attention' && (mine.length > 0 || all.length > 0) && (
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-[10px] tabular-nums',
+                    mine.length > 0 ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground',
+                  )}
+                  title={mine.length > 0 ? `${mine.length} routed to you · ${all.length} total` : `${all.length} total`}
+                >
+                  {mine.length > 0 ? mine.length : all.length}
+                </span>
+              )}
             </Link>
           ))}
         </nav>

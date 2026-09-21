@@ -15,6 +15,7 @@ import {
 import {
   ENGAGEMENT_OUTCOMES,
   GAP_IMPACTS,
+  HANDOFF_EVENTS,
   HANDOFF_KINDS,
   ISSUE_STATUSES,
   MILESTONE_KINDS,
@@ -24,6 +25,7 @@ import {
   PRODUCT_GAP_STATUSES,
   SIDES,
   STAKEHOLDER_ROLES,
+  type VerifiedDraft,
 } from '@tesseract/shared'
 import { organization, user } from './auth-schema.ts'
 
@@ -56,6 +58,8 @@ export const handoffKindEnum = pgEnum('handoff_kind', HANDOFF_KINDS)
 export const stakeholderRoleEnum = pgEnum('stakeholder_role', STAKEHOLDER_ROLES)
 export const productGapStatusEnum = pgEnum('product_gap_status', PRODUCT_GAP_STATUSES)
 export const gapImpactEnum = pgEnum('gap_impact', GAP_IMPACTS)
+export const handoffEventEnum = pgEnum('handoff_event_kind', HANDOFF_EVENTS)
+export const draftStatusEnum = pgEnum('draft_status', ['pending', 'applied', 'dismissed'])
 
 // ---- Customer accounts -------------------------------------------------------
 
@@ -159,13 +163,16 @@ export const milestone = pgTable(
   (t) => [index('milestone_engagement_idx').on(t.engagementId)],
 )
 
-export type HandoffSections = Record<string, { state: 'confirmed' | 'unclear' | 'not_discussed'; notes: string }>
+// `evidence` is provenance carried over from an applied AI draft: verbatim quotes + source line.
+export type HandoffEvidence = { quote: string; line: number; verified: boolean; sourceId?: string }
+export type HandoffSections = Record<string, { state: 'confirmed' | 'unclear' | 'not_discussed'; notes: string; evidence?: HandoffEvidence[] }>
 export type HandoffGap = {
   id: string
   title: string
   severity: 'blocking' | 'high' | 'medium' | 'low'
   ownerId: string | null
   resolvedAt: string | null
+  evidence?: HandoffEvidence[]
 }
 
 export const handoff = pgTable(
@@ -186,6 +193,85 @@ export const handoff = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex('handoff_engagement_kind_idx').on(t.engagementId, t.kind)],
+)
+
+// ---- AI-assisted handoff drafts: pasted notes in, verified proposals out, people apply ----
+
+export const handoffSource = pgTable(
+  'handoff_source',
+  {
+    id: id(),
+    organizationId: orgId(),
+    engagementId: text('engagementId')
+      .notNull()
+      .references(() => engagement.id, { onDelete: 'cascade' }),
+    kind: handoffKindEnum('kind').notNull(),
+    label: text('label').notNull(),
+    text: text('text').notNull(),
+    createdById: userRef('createdById'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('handoff_source_engagement_idx').on(t.engagementId)],
+)
+
+export const handoffDraft = pgTable(
+  'handoff_draft',
+  {
+    id: id(),
+    organizationId: orgId(),
+    engagementId: text('engagementId')
+      .notNull()
+      .references(() => engagement.id, { onDelete: 'cascade' }),
+    kind: handoffKindEnum('kind').notNull(),
+    sourceId: text('sourceId').references(() => handoffSource.id, { onDelete: 'set null' }),
+    proposal: jsonb('proposal').$type<VerifiedDraft>().notNull(),
+    model: text('model').notNull(),
+    status: draftStatusEnum('status').notNull().default('pending'),
+    appliedById: userRef('appliedById'),
+    appliedAt: timestamp('appliedAt', { withTimezone: true }),
+    createdById: userRef('createdById'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('handoff_draft_engagement_idx').on(t.engagementId, t.kind)],
+)
+
+// ---- Lifecycle event logs (source for metrics: time to accept, reopens, gate workarounds) ----
+
+export const phaseEvent = pgTable(
+  'phase_event',
+  {
+    id: id(),
+    organizationId: orgId(),
+    engagementId: text('engagementId')
+      .notNull()
+      .references(() => engagement.id, { onDelete: 'cascade' }),
+    from: phaseEnum('from').notNull(),
+    to: phaseEnum('to').notNull(),
+    actorId: userRef('actorId'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('phase_event_engagement_idx').on(t.engagementId)],
+)
+
+export const handoffEvent = pgTable(
+  'handoff_event',
+  {
+    id: id(),
+    organizationId: orgId(),
+    handoffId: text('handoffId')
+      .notNull()
+      .references(() => handoff.id, { onDelete: 'cascade' }),
+    engagementId: text('engagementId')
+      .notNull()
+      .references(() => engagement.id, { onDelete: 'cascade' }),
+    kind: handoffKindEnum('kind').notNull(),
+    event: handoffEventEnum('event').notNull(),
+    actorId: userRef('actorId'),
+    meta: jsonb('meta').$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('handoff_event_handoff_idx').on(t.handoffId), index('handoff_event_engagement_idx').on(t.engagementId)],
 )
 
 // ---- Threads and issues -------------------------------------------------------
@@ -358,6 +444,8 @@ export const engagementRelations = relations(engagement, ({ one, many }) => ({
   handoffs: many(handoff),
   threads: many(thread),
   gaps: many(engagementGap),
+  phaseEvents: many(phaseEvent),
+  handoffEvents: many(handoffEvent),
 }))
 
 export const outcomeRelations = relations(outcome, ({ one }) => ({
@@ -366,8 +454,20 @@ export const outcomeRelations = relations(outcome, ({ one }) => ({
 export const milestoneRelations = relations(milestone, ({ one }) => ({
   engagement: one(engagement, { fields: [milestone.engagementId], references: [engagement.id] }),
 }))
-export const handoffRelations = relations(handoff, ({ one }) => ({
+export const handoffRelations = relations(handoff, ({ one, many }) => ({
   engagement: one(engagement, { fields: [handoff.engagementId], references: [engagement.id] }),
+  events: many(handoffEvent),
+}))
+export const handoffDraftRelations = relations(handoffDraft, ({ one }) => ({
+  source: one(handoffSource, { fields: [handoffDraft.sourceId], references: [handoffSource.id] }),
+  engagement: one(engagement, { fields: [handoffDraft.engagementId], references: [engagement.id] }),
+}))
+export const handoffEventRelations = relations(handoffEvent, ({ one }) => ({
+  handoff: one(handoff, { fields: [handoffEvent.handoffId], references: [handoff.id] }),
+  engagement: one(engagement, { fields: [handoffEvent.engagementId], references: [engagement.id] }),
+}))
+export const phaseEventRelations = relations(phaseEvent, ({ one }) => ({
+  engagement: one(engagement, { fields: [phaseEvent.engagementId], references: [engagement.id] }),
 }))
 
 export const threadRelations = relations(thread, ({ one, many }) => ({

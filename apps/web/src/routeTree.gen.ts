@@ -14,8 +14,10 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AppAttentionRouteImport } from './routes/_app/attention'
 import { Route as AppGapsRouteImport } from './routes/_app/gaps'
 import { Route as AppIssuesRouteImport } from './routes/_app/issues'
+import { Route as AppMetricsRouteImport } from './routes/_app/metrics'
 import { Route as AppPostsalesRouteImport } from './routes/_app/postsales'
 import { Route as AppPresalesRouteImport } from './routes/_app/presales'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
@@ -49,6 +51,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAttentionRoute = AppAttentionRouteImport.update({
+  id: '/attention',
+  path: '/attention',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGapsRoute = AppGapsRouteImport.update({
   id: '/gaps',
   path: '/gaps',
@@ -57,6 +64,11 @@ const AppGapsRoute = AppGapsRouteImport.update({
 const AppIssuesRoute = AppIssuesRouteImport.update({
   id: '/issues',
   path: '/issues',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMetricsRoute = AppMetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPostsalesRoute = AppPostsalesRouteImport.update({
@@ -105,8 +117,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/attention': typeof AppAttentionRoute
   '/gaps': typeof AppGapsRoute
   '/issues': typeof AppIssuesRoute
+  '/metrics': typeof AppMetricsRoute
   '/postsales': typeof AppPostsalesRoute
   '/presales': typeof AppPresalesRoute
   '/settings': typeof AppSettingsRoute
@@ -121,8 +135,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/attention': typeof AppAttentionRoute
   '/gaps': typeof AppGapsRoute
   '/issues': typeof AppIssuesRoute
+  '/metrics': typeof AppMetricsRoute
   '/postsales': typeof AppPostsalesRoute
   '/presales': typeof AppPresalesRoute
   '/settings': typeof AppSettingsRoute
@@ -139,8 +155,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/_app/attention': typeof AppAttentionRoute
   '/_app/gaps': typeof AppGapsRoute
   '/_app/issues': typeof AppIssuesRoute
+  '/_app/metrics': typeof AppMetricsRoute
   '/_app/postsales': typeof AppPostsalesRoute
   '/_app/presales': typeof AppPresalesRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -157,8 +175,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/attention'
     | '/gaps'
     | '/issues'
+    | '/metrics'
     | '/postsales'
     | '/presales'
     | '/settings'
@@ -173,8 +193,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/attention'
     | '/gaps'
     | '/issues'
+    | '/metrics'
     | '/postsales'
     | '/presales'
     | '/settings'
@@ -190,8 +212,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/_app/attention'
     | '/_app/gaps'
     | '/_app/issues'
+    | '/_app/metrics'
     | '/_app/postsales'
     | '/_app/presales'
     | '/_app/settings'
@@ -247,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/attention': {
+      id: '/_app/attention'
+      path: '/attention'
+      fullPath: '/attention'
+      preLoaderRoute: typeof AppAttentionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/gaps': {
       id: '/_app/gaps'
       path: '/gaps'
@@ -259,6 +290,13 @@ declare module '@tanstack/react-router' {
       path: '/issues'
       fullPath: '/issues'
       preLoaderRoute: typeof AppIssuesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/metrics': {
+      id: '/_app/metrics'
+      path: '/metrics'
+      fullPath: '/metrics'
+      preLoaderRoute: typeof AppMetricsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/postsales': {
@@ -321,8 +359,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAttentionRoute: typeof AppAttentionRoute
   AppGapsRoute: typeof AppGapsRoute
   AppIssuesRoute: typeof AppIssuesRoute
+  AppMetricsRoute: typeof AppMetricsRoute
   AppPostsalesRoute: typeof AppPostsalesRoute
   AppPresalesRoute: typeof AppPresalesRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -334,8 +374,10 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAttentionRoute: AppAttentionRoute,
   AppGapsRoute: AppGapsRoute,
   AppIssuesRoute: AppIssuesRoute,
+  AppMetricsRoute: AppMetricsRoute,
   AppPostsalesRoute: AppPostsalesRoute,
   AppPresalesRoute: AppPresalesRoute,
   AppSettingsRoute: AppSettingsRoute,

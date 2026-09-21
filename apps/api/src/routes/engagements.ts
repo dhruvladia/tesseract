@@ -117,18 +117,24 @@ export const engagements = new Hono<OrgEnv>()
     if (!verdict.ok) throw badRequest(verdict.reason)
     const closing = phase === 'closed'
     const crossing = sideOf(phase) === 'postsales' && e.side === 'presales'
-    const [row] = await db
-      .update(eng)
-      .set({
-        phase,
-        side: crossing ? 'postsales' : e.side,
-        phaseEnteredAt: new Date(),
-        closedAt: closing ? new Date() : null,
-        outcome: closing ? (outcome ?? (e.side === 'postsales' ? 'handed_off' : 'lost')) : crossing ? 'won' : e.outcome,
-      })
-      .where(eq(eng.id, e.id))
-      .returning()
-    return c.json(row!)
+    const row = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(eng)
+        .set({
+          phase,
+          side: crossing ? 'postsales' : e.side,
+          phaseEnteredAt: new Date(),
+          closedAt: closing ? new Date() : null,
+          outcome: closing ? (outcome ?? (e.side === 'postsales' ? 'handed_off' : 'lost')) : crossing ? 'won' : e.outcome,
+        })
+        .where(eq(eng.id, e.id))
+        .returning()
+      if (phase !== e.phase) {
+        await tx.insert(schema.phaseEvent).values({ organizationId: c.var.orgId, engagementId: e.id, from: e.phase, to: phase, actorId: c.var.userId })
+      }
+      return row!
+    })
+    return c.json(row)
   })
   // Lightweight list of gaps raised on this engagement (used by the Signals tab and boards).
   .get('/:id/gaps', async (c) => {

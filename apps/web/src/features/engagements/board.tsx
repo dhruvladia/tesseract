@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react'
 import { NewEngagementDialog } from './new-engagement-dialog'
 import { EmptyState, UserAvatar, daysSince } from '@/components/common'
 import { engagementsQuery, useChangePhase, type EngagementListItem } from '@/lib/queries'
+import { useAttentionByEngagement } from '@/lib/queries-attention'
 
 export function EngagementBoard({ side }: { side: Side }) {
   const { data = [], isLoading } = useQuery(engagementsQuery(side))
@@ -106,6 +107,7 @@ function DraggableCard({ e }: { e: EngagementListItem }) {
 }
 
 export function Card({ e, overlay }: { e: EngagementListItem; overlay?: boolean }) {
+  const attention = useAttentionByEngagement().get(e.id)
   const days = daysSince(e.phaseEnteredAt)
   const next = e.milestones.find((m) => !m.completedAt)
   const blocking = e.handoffs.reduce((n, h) => n + h.gaps.filter((g) => g.severity === 'blocking' && !g.resolvedAt).length, 0)
@@ -121,7 +123,15 @@ export function Card({ e, overlay }: { e: EngagementListItem; overlay?: boolean 
       onClick={(ev) => overlay && ev.preventDefault()}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{e.account.key}</span>
+        <span className="flex items-center gap-1.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          {attention && (
+            <span
+              className={cn('size-1.5 rounded-full', attention.severity === 'high' ? 'bg-destructive' : attention.severity === 'medium' ? 'bg-postsales' : 'bg-muted-foreground/60')}
+              title={`${attention.count} item${attention.count === 1 ? '' : 's'} need attention`}
+            />
+          )}
+          {e.account.key}
+        </span>
         <span className={cn('text-[10px] tabular-nums', days > 21 ? 'text-postsales' : 'text-muted-foreground')} title="Days in phase">
           {days}d
         </span>

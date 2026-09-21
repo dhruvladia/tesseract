@@ -9,6 +9,15 @@ if (process.env.SEED_DEMO === '1') {
 }
 
 const port = Number(process.env.PORT ?? 3001)
-serve({ fetch: app.fetch, port }, () => {
+const server = serve({ fetch: app.fetch, port }, () => {
   console.log(`tesseract api listening on http://localhost:${port}`)
 })
+
+// Release the port and the embedded database promptly on restart (tsx watch, docker stop).
+for (const sig of ['SIGTERM', 'SIGINT'] as const) {
+  process.on(sig, () => {
+    if ('closeAllConnections' in server) (server as import('node:http').Server).closeAllConnections()
+    server.close(() => process.exit(0))
+    setTimeout(() => process.exit(0), 1500).unref()
+  })
+}

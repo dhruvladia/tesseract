@@ -33,6 +33,9 @@ CI runs the same three commands.
 | `packages/shared/src/phases.ts` | The engagement lifecycle. The API enforces it, the UI greys out invalid moves with it. Change it here and nowhere else, and extend `phases.test.ts` |
 | `apps/api/src/db/schema.ts` | Drizzle tables and relations. Every domain table carries `organizationId` |
 | `apps/api/src/routes/*` | One Hono sub-app per domain, all behind `requireOrg`. Every query filters on `c.var.orgId` |
+| `apps/api/src/lib/events.ts` | Lifecycle events (`phase_event`, `handoff_event`) are written by the phase and handoff endpoints; the Metrics page only reads these. If you add a state change that should be measurable, log it here |
+| `apps/api/src/lib/attention.ts` | Pure rules behind the Attention inbox, with tests. Add a rule here, not in the UI |
+| `packages/shared/src/handoff-draft.ts` | Model output schema and `verifyDraft`, the trust boundary for AI drafts. Anything the model proposes passes through here |
 | `apps/web/src/lib/queries*.ts` | TanStack Query options and mutations, typed from the API via Hono RPC |
 | `apps/web/src/features/*` | UI per domain; `src/routes` is file-based routing |
 | `apps/web/src/components/ui` | shadcn primitives, generated; edit sparingly |
