@@ -27,8 +27,8 @@ export function NewIssueProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (t.closest('input, textarea, [contenteditable], [role=dialog]')) return
+      const t = e.target
+      if (t instanceof Element && t.closest('input, textarea, [contenteditable], [role=dialog]')) return
       if (e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey) (e.preventDefault(), setOpen(true))
     }
     window.addEventListener('keydown', onKey)

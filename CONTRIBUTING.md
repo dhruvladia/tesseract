@@ -36,6 +36,8 @@ CI runs the same three commands.
 | `apps/api/src/lib/events.ts` | Lifecycle events (`phase_event`, `handoff_event`) are written by the phase and handoff endpoints; the Metrics page only reads these. If you add a state change that should be measurable, log it here |
 | `apps/api/src/lib/attention.ts` | Pure rules behind the Attention inbox, with tests. Add a rule here, not in the UI |
 | `packages/shared/src/handoff-draft.ts` | Model output schema and `verifyDraft`, the trust boundary for AI drafts. Anything the model proposes passes through here |
+| `apps/api/src/agent/` | The agent: `tools.ts` (one `tool()` per operation, each a typed call into our own API in-process), `describe.ts` (the one-sentence approval prompt), `prompt.ts` (rules), `core.ts` (shared by the chat route and the sim). Adding a capability = a zod schema + one fetch; put it in `WRITE_TOOLS` if it changes data. Prefer merge-shaped tools over full-replace ones: small models will pass whatever they believe the state is |
+| `apps/api/src/sim/` | Design-partner simulation (`pnpm sim`). Run it after touching the agent; it is the fastest way to see a small model misuse a tool |
 | `apps/web/src/lib/queries*.ts` | TanStack Query options and mutations, typed from the API via Hono RPC |
 | `apps/web/src/features/*` | UI per domain; `src/routes` is file-based routing |
 | `apps/web/src/components/ui` | shadcn primitives, generated; edit sparingly |

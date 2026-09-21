@@ -24,6 +24,7 @@ export type HandoffMetric = {
   gapsAddedAfterAcceptance: number
   thinConfirmations: number | null
   unclearAtAcceptance: number | null
+  notDiscussedAtAcceptance: number | null
   draftItemsProposed: number
   draftItemsApplied: number
 }
@@ -56,6 +57,7 @@ export const metrics = new Hono<OrgEnv>().use(requireOrg).get('/handoffs', async
         gapsAddedAfterAcceptance: h.events.filter((ev) => ev.event === 'gap_added' && (ev.meta as { afterAcceptance?: boolean } | null)?.afterAcceptance).length,
         thinConfirmations: accepted ? (meta.thinConfirmations ?? 0) : null,
         unclearAtAcceptance: accepted ? (meta.unclear ?? 0) : null,
+        notDiscussedAtAcceptance: accepted ? (meta.notDiscussed ?? 0) : null,
         draftItemsProposed: draft.reduce((n, m) => n + (m.proposed ?? 0), 0),
         draftItemsApplied: draft.reduce((n, m) => n + (m.applied ?? 0), 0),
       }
@@ -92,6 +94,7 @@ export const metrics = new Hono<OrgEnv>().use(requireOrg).get('/handoffs', async
     gapsAddedAfterAcceptance: all.reduce((n, h) => n + h.gapsAddedAfterAcceptance, 0),
     thinConfirmations: all.reduce((n, h) => n + (h.thinConfirmations ?? 0), 0),
     acceptedWithThinConfirmations: all.filter((h) => (h.thinConfirmations ?? 0) > 0).length,
+    acceptedMostlyNotDiscussed: all.filter((h) => (h.notDiscussedAtAcceptance ?? 0) >= 5).length,
     draftItemsProposed: all.reduce((n, h) => n + h.draftItemsProposed, 0),
     draftItemsApplied: all.reduce((n, h) => n + h.draftItemsApplied, 0),
   }

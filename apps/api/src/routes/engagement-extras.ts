@@ -7,7 +7,7 @@ import {
   outcomeCreateSchema,
   outcomeUpdateSchema,
 } from '@tesseract/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { db, schema } from '../db/index.ts'
@@ -80,6 +80,13 @@ export const engagementExtras = new Hono<OrgEnv>()
     const { id, kind } = c.req.valid('param')
     const e = must(await db.query.engagement.findFirst({ columns: { id: true }, where: own(id, c.var.orgId) }), 'Engagement')
     const b = c.req.valid('json')
+    const ownerIds = [...new Set(b.gaps.map((g) => g.ownerId).filter((x): x is string => !!x))]
+    if (ownerIds.length) {
+      const members = await db.select({ userId: schema.member.userId }).from(schema.member).where(and(eq(schema.member.organizationId, c.var.orgId), inArray(schema.member.userId, ownerIds)))
+      const known = new Set(members.map((m) => m.userId))
+      const bad = ownerIds.filter((o) => !known.has(o))
+      if (bad.length) throw badRequest(`Gap owner must be a member of this organization (${bad.length} unknown). Pick people from the member list.`)
+    }
     const row = await db.transaction(async (tx) => {
       const before = await tx.query.handoff.findFirst({ where: and(eq(handoff.engagementId, e.id), eq(handoff.kind, kind)) })
       const [row] = await tx
@@ -129,6 +136,7 @@ export const engagementExtras = new Hono<OrgEnv>()
               thinConfirmations: thinConfirmations(h.sections),
               confirmed: Object.values(h.sections).filter((s) => s?.state === 'confirmed').length,
               unclear: Object.values(h.sections).filter((s) => s?.state === 'unclear').length,
+              notDiscussed: Object.values(h.sections).filter((s) => s?.state === 'not_discussed').length,
               openGaps: h.gaps.filter((g) => !g.resolvedAt).length,
             },
           },

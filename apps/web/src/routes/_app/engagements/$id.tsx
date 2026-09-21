@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { RouteNotFound } from '@/components/route-fallbacks'
+import { ensure } from '@/lib/me'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { Orbs } from '@/components/orbs'
@@ -9,14 +11,17 @@ import { WorkTab } from '@/features/engagements/work-tab'
 import { PhaseStepper } from '@/features/engagements/phase-stepper'
 import { SignalsTab } from '@/features/engagements/signals-tab'
 import { StakeholderMap } from '@/features/accounts/stakeholder-map'
-import { engagementQuery } from '@/lib/queries'
+import { engagementQuery, useDeleteEngagement } from '@/lib/queries'
+import { Button } from '@/components/ui/button'
+import { Trash2 } from 'lucide-react'
 
 const TABS = ['overview', 'work', 'stakeholders', 'handoffs', 'signals'] as const
 type Tab = (typeof TABS)[number]
 
 export const Route = createFileRoute('/_app/engagements/$id')({
   validateSearch: z.object({ tab: z.enum(TABS).optional() }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(engagementQuery(params.id)),
+  loader: ({ context, params }) => ensure(context.queryClient, engagementQuery(params.id)),
+  notFoundComponent: () => <RouteNotFound what="engagement" />,
   component: EngagementPage,
 })
 
@@ -25,6 +30,7 @@ function EngagementPage() {
   const { tab = 'overview' } = Route.useSearch()
   const navigate = Route.useNavigate()
   const { data: e } = useQuery(engagementQuery(id))
+  const del = useDeleteEngagement()
   if (!e) return null
 
   return (
@@ -41,7 +47,22 @@ function EngagementPage() {
               <span className="font-mono">{e.account.key}</span> {e.account.name}
             </Link>
           </div>
-          <h1 className="mt-1 text-lg font-semibold tracking-tight">{e.name}</h1>
+          <div className="mt-1 flex items-center gap-2">
+            <h1 className="text-lg font-semibold tracking-tight">{e.name}</h1>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 text-muted-foreground hover:text-destructive"
+              title="Delete engagement"
+              onClick={async () => {
+                if (!confirm(`Delete "${e.name}"? This removes ${e.threads.length} thread${e.threads.length === 1 ? '' : 's'} with their issues, ${e.handoffs.length} handoff record${e.handoffs.length === 1 ? '' : 's'}, outcomes and milestones. Product gaps stay. This cannot be undone.`)) return
+                await del.mutateAsync(e.id)
+                navigate({ to: e.side === 'presales' ? '/presales' : '/postsales', search: {} })
+              }}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
           <div className="mt-3">
             <PhaseStepper e={e} />
           </div>
