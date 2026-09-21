@@ -36,8 +36,8 @@ function Body({ issue: i, onClose }: { issue: Detail; onClose?: () => void }) {
   // Keyboard: E edit title, A assignee, S status, P priority, 0-4 priority, Esc close.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (t.closest('input, textarea, [contenteditable], [role=dialog] [cmdk-root]')) return
+      const t = e.target
+      if (t instanceof Element && t.closest('input, textarea, [contenteditable], [role=dialog] [cmdk-root]')) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const k = e.key.toLowerCase()
       if (k === 'e') (e.preventDefault(), titleRef.current?.focus(), titleRef.current?.select())

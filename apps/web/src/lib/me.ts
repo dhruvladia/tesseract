@@ -1,5 +1,19 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
-import { api, unwrap } from './api'
+import { queryOptions, useQuery, type EnsureQueryDataOptions, type QueryClient, type QueryKey } from '@tanstack/react-query'
+import { notFound } from '@tanstack/react-router'
+import { ApiError, api, unwrap } from './api'
+
+/** ensureQueryData that turns a 404 into the route's not-found page instead of an error card. */
+export async function ensure<TQueryFnData, TError, TData, TQueryKey extends QueryKey>(
+  qc: QueryClient,
+  query: EnsureQueryDataOptions<TQueryFnData, TError, TData, TQueryKey>,
+): Promise<TData> {
+  try {
+    return await qc.ensureQueryData(query)
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) throw notFound()
+    throw e
+  }
+}
 
 const fetchMe = () => unwrap(api.me.$get())
 
