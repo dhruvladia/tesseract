@@ -41,6 +41,18 @@ export const HANDOFF_SECTION_KEYS = [
 ] as const
 export type HandoffSectionKey = (typeof HANDOFF_SECTION_KEYS)[number]
 
+// Shown under each section in the UI and given to the model verbatim, so both agree on what belongs where.
+export const HANDOFF_SECTION_PROMPTS: Record<HandoffSectionKey, string> = {
+  customer_overview: 'Who they are, what triggered the evaluation, why they bought (or will).',
+  goals_success_criteria: 'The outcome they expect and how they will measure it. Link the outcome contract.',
+  use_cases_scope: 'What is in scope for the first wedge, and explicitly what was left out.',
+  configuration_requirements: 'Features, models, environments, access the next team needs before planning.',
+  integrations_constraints: 'Systems to connect, data sources, security/compliance constraints raised so far.',
+  stakeholders_roles: 'Sponsor, technical owner, workflow owner, champion; who attends kickoff; who owns day to day.',
+  timeline_milestones: 'Expected go-live, fixed business deadlines, rollout phasing agreed.',
+  risks_open_questions: 'Unresolved concerns, unclear requirements, decisions still pending.',
+}
+
 export const HANDOFF_SECTION_LABELS: Record<HandoffSectionKey, string> = {
   customer_overview: 'Customer overview',
   goals_success_criteria: 'Goals and success criteria',
@@ -51,6 +63,20 @@ export const HANDOFF_SECTION_LABELS: Record<HandoffSectionKey, string> = {
   timeline_milestones: 'Timeline and key milestones',
   risks_open_questions: 'Risks, gaps and open questions',
 }
+
+// Lifecycle events on a handoff record; the metrics page is computed from these.
+export const HANDOFF_EVENTS = [
+  'created',
+  'section_marked',
+  'gap_added',
+  'gap_resolved',
+  'gap_reopened',
+  'accepted',
+  'reopened',
+  'draft_generated',
+  'draft_applied',
+] as const
+export type HandoffEvent = (typeof HANDOFF_EVENTS)[number]
 
 export const GAP_SEVERITIES = ['blocking', 'high', 'medium', 'low'] as const
 export type GapSeverity = (typeof GAP_SEVERITIES)[number]

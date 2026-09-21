@@ -97,16 +97,19 @@ export const milestoneCreateSchema = milestoneBase.extend({ kind: milestoneBase.
 export const milestoneUpdateSchema = milestoneBase.partial()
 
 // ---- Handoffs ------------------------------------------------------------------
+const evidenceRef = z.object({ quote: z.string(), line: z.number().int(), verified: z.boolean(), sourceId: z.string().optional() })
 export const handoffSectionSchema = z.object({
   state: z.enum(HANDOFF_SECTION_STATES),
   notes: z.string().max(10_000).default(''),
+  evidence: z.array(evidenceRef).optional(),
 })
 export const handoffGapSchema = z.object({
   id: id,
-  title: text.min(1).max(300),
+  title: text.max(300), // may be empty while drafting; acceptance requires a title
   severity: z.enum(GAP_SEVERITIES),
   ownerId: id.nullable(),
   resolvedAt: z.string().datetime().nullable(),
+  evidence: z.array(evidenceRef).optional(),
 })
 export const handoffUpsertSchema = z.object({
   sections: z.partialRecord(z.enum(HANDOFF_SECTION_KEYS), handoffSectionSchema),

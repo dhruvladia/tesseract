@@ -3,13 +3,16 @@ import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
 import { auth } from './auth.ts'
 import { accounts } from './routes/accounts.ts'
+import { attention } from './routes/attention.ts'
 import { engagementExtras } from './routes/engagement-extras.ts'
 import { engagements } from './routes/engagements.ts'
 import { gaps } from './routes/gaps.ts'
+import { handoffDrafts } from './routes/handoff-drafts.ts'
 import { issues } from './routes/issues.ts'
 import { labels } from './routes/labels.ts'
 import { me } from './routes/me.ts'
 import { members } from './routes/members.ts'
+import { metrics } from './routes/metrics.ts'
 import { search } from './routes/search.ts'
 import { threads } from './routes/threads.ts'
 
@@ -37,10 +40,13 @@ export const app = new Hono()
   .route('/api/accounts', accounts)
   .route('/api/engagements', engagements)
   .route('/api/engagements', engagementExtras)
+  .route('/api/engagements', handoffDrafts)
   .route('/api/threads', threads)
   .route('/api/issues', issues)
   .route('/api/labels', labels)
   .route('/api/gaps', gaps)
+  .route('/api/metrics', metrics)
+  .route('/api/attention', attention)
   .route('/api/search', search)
 
 export type AppType = typeof app

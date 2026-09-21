@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { db, schema } from '../db/index.ts'
+import { llmInfo } from '../lib/llm.ts'
 import { requireOrg, type OrgEnv } from '../middleware/org.ts'
 
 // Bootstrap payload for the SPA: who am I, which org, who else is here.
@@ -18,5 +19,5 @@ export const me = new Hono<OrgEnv>().use(requireOrg).get('/', async (c) => {
     .innerJoin(schema.user, eq(schema.user.id, schema.member.userId))
     .where(eq(schema.member.organizationId, c.var.orgId))
     .orderBy(schema.user.name)
-  return c.json({ userId: c.var.userId, role: c.var.role, organization: org!, members })
+  return c.json({ userId: c.var.userId, role: c.var.role, organization: org!, members, ai: llmInfo })
 })

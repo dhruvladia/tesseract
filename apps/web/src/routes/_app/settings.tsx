@@ -143,6 +143,22 @@ function SettingsPage() {
         </section>
 
         <Labels />
+
+        <section>
+          <h2 className="mb-1 text-sm font-semibold">AI-assisted handoffs</h2>
+          {me.ai.enabled ? (
+            <p className="text-sm text-muted-foreground">
+              Enabled. Drafts are generated with <code className="text-foreground">{me.ai.provider}/{me.ai.model}</code>. Pasted notes are sent to that provider and stored with
+              the engagement. The model proposes; a person applies. Items without a verbatim quote in the notes are flagged and never applied by default.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Not configured. Set <code className="text-foreground">LLM_PROVIDER</code> (anthropic, openai, or openai-compatible), <code className="text-foreground">LLM_MODEL</code>,{' '}
+              <code className="text-foreground">LLM_API_KEY</code> (and <code className="text-foreground">LLM_BASE_URL</code> for compatible endpoints) on the API to enable
+              “Draft from notes” on the Handoffs tab.
+            </p>
+          )}
+        </section>
       </div>
     </div>
   )

@@ -8,6 +8,20 @@
       "when": 1790004714284,
       "tag": "0000_light_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790011126106,
+      "tag": "0001_high_tigra",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790011979303,
+      "tag": "0002_skinny_sister_grimm",
+      "breakpoints": true
     }
   ]
 }

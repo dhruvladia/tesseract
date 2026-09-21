@@ -2,6 +2,7 @@ import {
   GAP_SEVERITIES,
   HANDOFF_SECTION_KEYS,
   HANDOFF_SECTION_LABELS,
+  HANDOFF_SECTION_PROMPTS,
   handoffComplete,
   type GapSeverity,
   type HandoffKind,
@@ -11,7 +12,11 @@ import {
 import { cn } from 'cn'
 import { format } from 'date-fns'
 import { Check, CheckCircle2, CircleDashed, HelpCircle, Lock, Plus, RotateCcw, X } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { DraftFromNotesButton } from './draft-dialog'
+import { EvidenceChips, type EvidenceRef } from './evidence'
+import { HandoffDraftReview } from './handoff-draft-review'
 import { MemberPicker, UserName } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,9 +24,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import type { EngagementDetail } from '@/lib/queries'
 import { useHandoff } from '@/lib/queries-engagement-extras'
+import { pendingDraftQuery } from '@/lib/queries-drafts'
 
-type Sections = Partial<Record<HandoffSectionKey, { state: HandoffSectionState; notes: string }>>
-type Gap = { id: string; title: string; severity: GapSeverity; ownerId: string | null; resolvedAt: string | null }
+type Sections = Partial<Record<HandoffSectionKey, { state: HandoffSectionState; notes: string; evidence?: EvidenceRef[] }>>
+type Gap = { id: string; title: string; severity: GapSeverity; ownerId: string | null; resolvedAt: string | null; evidence?: EvidenceRef[] }
 
 const KIND_META: Record<HandoffKind, { title: string; from: string; to: string; unlocks: string }> = {
   pre_to_post: {
@@ -38,16 +44,6 @@ const KIND_META: Record<HandoffKind, { title: string; from: string; to: string; 
   },
 }
 
-const SECTION_PROMPTS: Record<HandoffSectionKey, string> = {
-  customer_overview: 'Who they are, what triggered the evaluation, why they bought (or will).',
-  goals_success_criteria: 'The outcome they expect and how they will measure it. Link the outcome contract.',
-  use_cases_scope: 'What is in scope for the first wedge, and explicitly what was left out.',
-  configuration_requirements: 'Features, models, environments, access the next team needs before planning.',
-  integrations_constraints: 'Systems to connect, data sources, security/compliance constraints raised so far.',
-  stakeholders_roles: 'Sponsor, technical owner, workflow owner, champion; who attends kickoff; who owns day to day.',
-  timeline_milestones: 'Expected go-live, fixed business deadlines, rollout phasing agreed.',
-  risks_open_questions: 'Unresolved concerns, unclear requirements, decisions still pending.',
-}
 
 export function HandoffsTab({ e }: { e: EngagementDetail }) {
   // Show the handoff that matters for where the engagement is, plus any existing one.
@@ -69,6 +65,14 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
   const dirty = useRef(false)
   const meta = KIND_META[kind]
   const accepted = !!existing?.acceptedAt
+  const { data: pending } = useQuery(pendingDraftQuery(e.id, kind))
+
+  // A draft apply (or another tab) changes the record server-side; adopt it unless we have unsaved edits.
+  useEffect(() => {
+    if (dirty.current || !existing) return
+    setSections((existing.sections as Sections) ?? {})
+    setGaps((existing.gaps as Gap[]) ?? [])
+  }, [existing?.updatedAt]) // eslint-disable-line react-hooks/exhaustive-deps
   const complete = handoffComplete(existing ? { kind, acceptedAt: existing.acceptedAt, gaps: existing.gaps } : null)
 
   // Debounced autosave of the working draft.
@@ -96,11 +100,11 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
 
   const setState = (k: HandoffSectionKey, state: HandoffSectionState) => {
     dirty.current = true
-    setSections((s) => ({ ...s, [k]: { state, notes: s[k]?.notes ?? '' } }))
+    setSections((s) => ({ ...s, [k]: { ...s[k], state, notes: s[k]?.notes ?? '' } }))
   }
   const setNotes = (k: HandoffSectionKey, notes: string) => {
     dirty.current = true
-    setSections((s) => ({ ...s, [k]: { state: s[k]?.state ?? 'not_discussed', notes } }))
+    setSections((s) => ({ ...s, [k]: { ...s[k], state: s[k]?.state ?? 'not_discussed', notes } }))
   }
   const updateGap = (id: string, patch: Partial<Gap>) => {
     dirty.current = true
@@ -108,6 +112,8 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
   }
 
   return (
+    <div className="space-y-3">
+    {pending && <HandoffDraftReview key={pending.id} engagementId={e.id} kind={kind} draft={pending} locked={accepted} />}
     <section className={cn('rounded-xl border', accepted ? 'border-presales/40' : 'border-border/60')}>
       <header className="flex flex-wrap items-center gap-3 border-b border-border/50 px-4 py-3">
         <div className="min-w-0 flex-1">
@@ -116,6 +122,7 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
             Written by {meta.from} for {meta.to}. Unlocks: {meta.unlocks}.
           </p>
         </div>
+        {!accepted && <DraftFromNotesButton engagementId={e.id} kind={kind} hasPending={!!pending} />}
         {accepted ? (
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-presales/15 px-2.5 py-1 text-xs text-presales">
@@ -150,7 +157,7 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-medium">{HANDOFF_SECTION_LABELS[k]}</h3>
-                  <p className="text-[11px] text-muted-foreground">{SECTION_PROMPTS[k]}</p>
+                  <p className="text-[11px] text-muted-foreground">{HANDOFF_SECTION_PROMPTS[k]}</p>
                 </div>
                 <TriState value={s?.state} onChange={(v) => setState(k, v)} disabled={accepted} />
               </div>
@@ -162,6 +169,7 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
                 placeholder={s?.state === 'not_discussed' ? 'Not discussed yet.' : 'Notes, links, decisions…'}
                 className="mt-2 resize-none border-border/40 bg-transparent text-xs"
               />
+              <EvidenceChips engagementId={e.id} evidence={s?.evidence} className="mt-1.5" />
             </div>
           )
         })}
@@ -218,6 +226,7 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
                 </SelectContent>
               </Select>
               <MemberPicker value={g.ownerId} onChange={(v) => updateGap(g.id, { ownerId: v })} placeholder="Owner" className="h-7 w-40 text-xs" />
+              <EvidenceChips engagementId={e.id} evidence={g.evidence} />
               {!accepted && (
                 <button
                   type="button"
@@ -235,6 +244,7 @@ function HandoffCard({ e, kind }: { e: EngagementDetail; kind: HandoffKind }) {
         </ul>
       </div>
     </section>
+    </div>
   )
 }
 

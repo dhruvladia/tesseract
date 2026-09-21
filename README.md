@@ -24,10 +24,13 @@ FDE work does not fit an issue tracker or a CRM:
 | Threads and issues | Workstreams per engagement (Discovery, Data access, Prototype, Hardening…) plus internal threads. Issues get `ACME-42` / `INT-7` identifiers, rich descriptions, status, priority, assignee, labels, due dates, sub-issues, comments, and a per-field activity log. |
 | Handoffs | Pre→Post and Post→CS records. Converting to post-sales requires an accepted handoff with no unresolved blocking gaps; closing a post-sales engagement requires the CS handoff. |
 | Product gaps | Kanban raised → triaged → accepted → shipped / declined. Link gaps to engagements with impact and ARR influenced; drag a gap onto another to cluster it. |
+| Handoff drafts (AI, optional) | Paste call notes or a transcript; the model proposes sections, stakeholders, outcome metrics, commitments and gaps, each with a verbatim quote and line number. Quotes are checked mechanically; anything unsupported is flagged and sections without evidence fall back to "not discussed". A person reviews, edits, and applies. See below. |
+| Attention | An inbox computed from your data: handoffs ready to accept, blocking or unowned gaps, missing owners or stakeholders, stale engagements, overdue milestones and issues, live deployments with no verified first value. Routed to the person who should act. |
+| Metrics | Is the gate respected and does it pay off: time to accepted handoff, technical win to kickoff, time to first value, reopens after acceptance, gaps found after acceptance, thin confirmations. Computed from an event log, per engagement. |
 | Command palette | `⌘K` jumps to accounts, engagements, issues, gaps; runs actions (new issue, move phase, assign FDE). `C` creates an issue in context. |
 | Roles | owner, admin, FDE, engagement manager, account executive, customer success, product. |
 
-Deferred to v2: metrics dashboard (time-to-first-value, pilot→production conversion, productization rate), decisions/risks log, capacity view, realtime, Slack/CRM sync, custom phases.
+Deferred: decisions/risks log, capacity view, realtime, Slack/CRM ingestion, custom phases, delivery risk review and cross-engagement gap analysis (the next two AI workflows).
 
 ## Quick start (no database required)
 
@@ -41,6 +44,28 @@ SEED_DEMO=1 pnpm dev            # api on :3001, web on :5173
 ```
 
 Open http://localhost:5173 and sign in as `ada@acme.ai` / `tesseract-demo` to explore a seeded FDE portfolio, or create your own account. Without `DATABASE_URL`, the API runs an embedded Postgres (PGlite) at `apps/api/data/pg`, so nothing else needs to be installed.
+
+## AI-assisted handoffs
+
+The handoff record is Tesseract's strongest feature and also the most administrative one to fill in. With a model configured, the Handoffs tab gets a **Draft from notes** button:
+
+1. Paste call notes or a transcript and give the source a label. The text is stored with the engagement.
+2. The model returns a proposal: section states and notes, stakeholders with roles, outcome metrics with baseline and target, commitments (which become milestones), and gaps with severity. Every item must cite a verbatim quote and its line number.
+3. Tesseract checks each quote against the source. Quotes that are not there are flagged; sections with no verified evidence are forced back to "not discussed" with empty notes. Nothing unsupported looks confident.
+4. You review: untick, edit, change severity or role, open any quote in its surrounding lines. Then apply. Only what you applied is written, with the quotes attached as provenance you can open later from the record.
+
+The boundary is deliberate: **the model proposes, an accountable person accepts commitments and verifies outcomes.** Every generation and application is logged, so the Metrics page can show how many proposed items people actually kept.
+
+Bring your own model. Set on the API:
+
+```bash
+LLM_PROVIDER=anthropic        # or openai, or openai-compatible
+LLM_MODEL=claude-sonnet-4-5   # any model id the provider accepts
+LLM_API_KEY=...
+# LLM_BASE_URL=http://localhost:11434/v1   # openai-compatible only (Ollama, vLLM, gateways)
+```
+
+Leave `LLM_PROVIDER` unset and every AI surface disappears. What gets sent to the provider: the pasted notes, the engagement name, account name, decision, existing stakeholder names and roles, existing outcome metric names, and the current section states. Nothing else.
 
 ## Self-hosting with Docker
 
@@ -63,6 +88,10 @@ The web image (nginx) serves the SPA on port 8080 and proxies `/api` to the API 
 | `TRUSTED_ORIGINS` | `http://localhost:5173` | Comma-separated origins allowed to call the API with cookies. |
 | `AUTO_JOIN` | `true` | New sign-ups automatically join the first organization. Set `false` to require an admin to add members from Settings. |
 | `SEED_DEMO` | – | `1` seeds the demo workspace on boot (idempotent). |
+| `LLM_PROVIDER` | unset | `anthropic`, `openai`, or `openai-compatible`. Unset disables AI features. |
+| `LLM_MODEL` | – | Model id passed to the provider. |
+| `LLM_API_KEY` | – | Provider key (optional for some openai-compatible endpoints). |
+| `LLM_BASE_URL` | – | Base URL for `openai-compatible` endpoints. |
 
 Tesseract's data model is multi-organization (every row carries an `organizationId`), but v1 ships a single-organization flow: the first person to sign up creates the workspace, and everyone after joins it.
 
@@ -71,7 +100,7 @@ Tesseract's data model is multi-organization (every row carries an `organization
 ```bash
 pnpm dev          # both apps with hot reload
 pnpm typecheck    # all packages
-pnpm test         # lifecycle rules self-check (packages/shared)
+pnpm test         # lifecycle rules, draft verification, attention rules
 pnpm db:generate  # regenerate a migration after editing apps/api/src/db/schema.ts
 pnpm db:seed      # seed demo data into a running Postgres (for PGlite use SEED_DEMO=1 instead)
 ```
