@@ -15,7 +15,15 @@ export function must<T>(row: T | undefined | null, what?: string): T {
 export const v = <Target extends 'json' | 'query' | 'param', S extends ZodType>(target: Target, schema: S) =>
   zValidator(target, schema, (result) => {
     if (!result.success) {
-      const msg = result.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`).join('; ')
-      throw badRequest(msg)
+      const msg = result.error.issues
+        .map((i) => {
+          const field = String(i.path.at(-1) ?? 'body')
+          const label = field.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()
+          if (i.code === 'too_small' && (i as { minimum?: number }).minimum === 1) return `${label} is required`
+          if (i.code === 'invalid_value' || i.code === 'invalid_format') return `${label}: ${i.message.replace(/^Invalid option: expected one of /, 'must be one of ')}`
+          return `${label}: ${i.message}`
+        })
+        .join('; ')
+      throw badRequest(msg.charAt(0).toUpperCase() + msg.slice(1))
     }
   })

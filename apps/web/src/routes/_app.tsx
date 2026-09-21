@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import { AppShell } from '@/components/app-shell'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { AgentPanel } from '@/features/agent/agent-panel'
 import { CommandPalette } from '@/features/cmdk'
 import { IssueDetail } from '@/features/issues/issue-detail'
 import { NewIssueProvider } from '@/features/issues/new-issue-dialog'
@@ -34,6 +35,7 @@ function Layout() {
         <Outlet />
       </AppShell>
       <CommandPalette />
+      <AgentPanel />
       <Sheet open={!!issue} onOpenChange={(o) => !o && close()}>
         <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-2xl" showCloseButton={false}>
           <SheetTitle className="sr-only">Issue</SheetTitle>

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Field, PageHeader, UserAvatar } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Kbd } from '@/components/ui/kbd'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api, unwrap } from '@/lib/api'
 import { useMe } from '@/lib/me'
@@ -148,8 +149,9 @@ function SettingsPage() {
           <h2 className="mb-1 text-sm font-semibold">AI-assisted handoffs</h2>
           {me.ai.enabled ? (
             <p className="text-sm text-muted-foreground">
-              Enabled. Drafts are generated with <code className="text-foreground">{me.ai.provider}/{me.ai.model}</code>. Pasted notes are sent to that provider and stored with
-              the engagement. The model proposes; a person applies. Items without a verbatim quote in the notes are flagged and never applied by default.
+              Enabled with <code className="text-foreground">{me.ai.provider}/{me.ai.model}</code>. Handoff drafts, and the Agent (<Kbd>⌘J</Kbd>) that operates the platform on your
+              behalf: reads run freely, every change waits for your approval in the chat. Voice input is {me.ai.transcribe ? 'on' : 'off (needs the openai provider)'}. Text you
+              send to the agent or paste into a draft goes to that provider; drafts are stored with the engagement.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
