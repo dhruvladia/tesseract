@@ -72,6 +72,7 @@ export async function seedDemo() {
   const hel = await acct({ name: 'Helios Energy', key: 'HEL', domain: 'helios-energy.com', arr: null, notes: 'Utility. Prospect via Diego; bootcamp scheduled.' })
   const mrd = await acct({ name: 'Meridian Health', key: 'MRD', domain: 'meridianhealth.org', arr: '1200000', notes: 'Hospital network, 14 sites. HIPAA BAA signed. Epic integration through their integration engine.' })
   const atl = await acct({ name: 'Atlas Logistics', key: 'ATL', domain: 'atlaslogistics.io', arr: null })
+  const cbf = await acct({ name: 'Cobalt Freight', key: 'CBF', domain: 'cobaltfreight.eu', arr: null, notes: 'European customs broker, four entry points. Everything stays in the EU; on-prem Kubernetes in Rotterdam.' })
 
   const sh = (accountId: string, role: (typeof schema.stakeholder.$inferInsert)['role'], name: string, title: string, email: string, notes?: string) => ({
     organizationId: orgId,
@@ -94,6 +95,8 @@ export async function seedDemo() {
     sh(mrd.id, 'workflow_owner', 'Carla Nguyen', 'Prior Authorization Manager', 'cnguyen@meridianhealth.org'),
     sh(mrd.id, 'blocker', 'Frank Lowe', 'Compliance Officer', 'flowe@meridianhealth.org', 'Wants a full audit trail before any PHI touches the model. Reasonable; plan for it.'),
     sh(atl.id, 'sponsor', 'Yusuf Adeyemi', 'VP Network Operations', 'yusuf@atlaslogistics.io'),
+    sh(cbf.id, 'sponsor', 'Nadia Okonjo', 'VP Customs Operations', 'n.okonjo@cobaltfreight.eu'),
+    sh(cbf.id, 'technical_owner', 'Felix Braun', 'Head of Engineering', 'f.braun@cobaltfreight.eu'),
   ])
 
   // ---- engagements ----
@@ -120,19 +123,19 @@ export async function seedDemo() {
     accountId: nwb.id,
     name: 'Fraud signals copilot',
     side: 'presales',
-    phase: 'discover',
+    phase: 'technical_win',
     decision: 'Expand the Northwind contract to the Special Investigations Unit (second business unit).',
     fdeId: linus,
     engagementManagerId: maya,
     aeId: diego,
-    phaseEnteredAt: daysAgo(6),
+    phaseEnteredAt: daysAgo(2),
     createdAt: daysAgo(14),
   })
   const outage = await eng({
     accountId: hel.id,
     name: 'Outage report summarization',
     side: 'presales',
-    phase: 'prototype',
+    phase: 'technical_win',
     decision: 'Sign a 12-month platform agreement after a 5-day bootcamp on real outage tickets.',
     description: 'Bootcamp days 1-2: connect ServiceNow export + SCADA event log. Days 3-4: co-build summarizer with Grid IT. Day 5: exec demo with ROI on mean-time-to-report.',
     fdeId: grace,
@@ -189,6 +192,19 @@ export async function seedDemo() {
     aeId: diego,
     phaseEnteredAt: daysAgo(24),
     createdAt: daysAgo(40),
+  })
+  const customs = await eng({
+    accountId: cbf.id,
+    name: 'Customs document triage',
+    side: 'presales',
+    phase: 'technical_win',
+    decision: 'Sign a three-month paid deployment for the two low-risk lanes, with an option for all four entry points.',
+    description: 'Prototype classified 1,200 historical packets with 91% agreement. Reads from Docuware, never the mailbox. Nothing leaves the EU.',
+    fdeId: linus,
+    engagementManagerId: maya,
+    aeId: diego,
+    phaseEnteredAt: daysAgo(1),
+    createdAt: daysAgo(30),
   })
   await eng({
     accountId: atl.id,
@@ -294,8 +310,9 @@ export async function seedDemo() {
     steps.map(([from, to, d]) => ({ organizationId: orgId, engagementId, from, to, actorId, createdAt: daysAgo(d) }))
   await db.insert(schema.phaseEvent).values([
     ...pe(claims.id, [['qualify', 'discover', 62], ['discover', 'scope', 56], ['scope', 'prototype', 52], ['prototype', 'technical_win', 46], ['technical_win', 'kickoff', 40], ['kickoff', 'build', 9]], grace),
-    ...pe(fraud.id, [['qualify', 'discover', 6]], linus),
-    ...pe(outage.id, [['qualify', 'discover', 18], ['discover', 'scope', 10], ['scope', 'prototype', 3]], grace),
+    ...pe(fraud.id, [['qualify', 'discover', 12], ['discover', 'scope', 8], ['scope', 'prototype', 5], ['prototype', 'technical_win', 2]], linus),
+    ...pe(outage.id, [['qualify', 'discover', 18], ['discover', 'scope', 10], ['scope', 'prototype', 5], ['prototype', 'technical_win', 1]], grace),
+    ...pe(customs.id, [['qualify', 'discover', 28], ['discover', 'scope', 21], ['scope', 'prototype', 14], ['prototype', 'technical_win', 1]], linus),
     ...pe(priorAuth.id, [['qualify', 'discover', 110], ['discover', 'scope', 107], ['scope', 'prototype', 105], ['prototype', 'technical_win', 104], ['technical_win', 'kickoff', 99], ['kickoff', 'build', 92], ['build', 'validate', 70], ['validate', 'live', 50], ['live', 'adopt', 18]], linus),
     ...pe(coding.id, [['kickoff', 'build', 62], ['build', 'validate', 30], ['validate', 'live', 12]], linus),
     ...pe(dispatch.id, [['qualify', 'discover', 36], ['discover', 'scope', 24]], linus),
@@ -403,6 +420,10 @@ export async function seedDemo() {
   const tCode = await thread(coding.id, 'Hardening')
   await issue(tCode, 'MRD', mrd.id, { title: 'Denial-rate dashboard wired to claims system', status: 'in_progress', priority: 'high', assigneeId: linus })
   await issue(tCode, 'MRD', mrd.id, { title: 'Audit log export for Compliance (Frank)', status: 'todo', priority: 'urgent', assigneeId: linus, dueDate: iso(daysAgo(1)) })
+
+  const tCust = await thread(customs.id, 'Prototype', 'Docuware classification prototype')
+  await issue(tCust, 'CBF', cbf.id, { title: 'Re-label the tariff-dispute class with current brokers', status: 'todo', priority: 'high', assigneeId: linus })
+  await issue(tCust, 'CBF', cbf.id, { title: 'Measure Docuware API throttling under load', status: 'in_progress', assigneeId: linus })
 
   const tScope = await thread(dispatch.id, 'Scoping')
   await issue(tScope, 'ATL', atl.id, { title: 'Draft outcome contract with Yusuf', status: 'in_progress', priority: 'high', assigneeId: linus })

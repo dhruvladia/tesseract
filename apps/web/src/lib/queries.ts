@@ -41,6 +41,21 @@ export function useUpdateAccount(id: string) {
   })
 }
 
+export function useDeleteAccount() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => unwrap(api.accounts[':id'].$delete({ param: { id } })),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['engagements'] })
+      qc.invalidateQueries({ queryKey: ['threads'] })
+      qc.invalidateQueries({ queryKey: ['issues'] })
+      qc.invalidateQueries({ queryKey: ['attention'] })
+    },
+    onError: (e) => toast.error(e.message),
+  })
+}
+
 // ---- Engagements ---------------------------------------------------------------
 
 const fetchEngagements = (side?: Side, includeClosed = false) =>
@@ -77,6 +92,21 @@ export function useUpdateEngagement(id: string) {
   return useMutation({
     mutationFn: (json: In<typeof engagementUpdateSchema>) => unwrap(api.engagements[':id'].$patch({ param: { id }, json })),
     onSuccess: invalidate,
+    onError: (e) => toast.error(e.message),
+  })
+}
+
+export function useDeleteEngagement() {
+  const invalidate = useInvalidateEngagement()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => unwrap(api.engagements[':id'].$delete({ param: { id } })),
+    onSuccess: () => {
+      invalidate()
+      qc.invalidateQueries({ queryKey: ['threads'] })
+      qc.invalidateQueries({ queryKey: ['issues'] })
+      qc.invalidateQueries({ queryKey: ['attention'] })
+    },
     onError: (e) => toast.error(e.message),
   })
 }

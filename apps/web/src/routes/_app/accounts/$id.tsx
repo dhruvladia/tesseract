@@ -1,20 +1,26 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { RouteNotFound } from '@/components/route-fallbacks'
+import { ensure } from '@/lib/me'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PHASE_LABELS } from '@tesseract/shared'
 import { PageHeader, PhasePill, UserAvatar, money } from '@/components/common'
 import { StakeholderMap } from '@/features/accounts/stakeholder-map'
 import { NewEngagementDialog } from '@/features/engagements/new-engagement-dialog'
 import { Button } from '@/components/ui/button'
-import { accountQuery } from '@/lib/queries'
+import { accountQuery, useDeleteAccount } from '@/lib/queries'
+import { Trash2 } from 'lucide-react'
 
 export const Route = createFileRoute('/_app/accounts/$id')({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(accountQuery(params.id)),
+  loader: ({ context, params }) => ensure(context.queryClient, accountQuery(params.id)),
+  notFoundComponent: () => <RouteNotFound what="account" />,
   component: AccountPage,
 })
 
 function AccountPage() {
   const { id } = Route.useParams()
   const { data: a } = useQuery(accountQuery(id))
+  const del = useDeleteAccount()
+  const navigate = useNavigate()
   if (!a) return null
   const open = a.engagements.filter((e) => e.phase !== 'closed')
   const closed = a.engagements.filter((e) => e.phase === 'closed')
@@ -37,6 +43,20 @@ function AccountPage() {
           <>
             <NewEngagementDialog side="presales" accountId={a.id} trigger={<Button size="sm" variant="outline">New pre-sales</Button>} />
             <NewEngagementDialog side="postsales" accountId={a.id} trigger={<Button size="sm" variant="outline">New post-sales</Button>} />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8 text-muted-foreground hover:text-destructive"
+              title="Delete account"
+              onClick={async () => {
+                const n = a.engagements.length
+                if (!confirm(`Delete ${a.name}? This removes ${n} engagement${n === 1 ? '' : 's'}, their threads, issues and handoffs, and ${a.stakeholders.length} stakeholder${a.stakeholders.length === 1 ? '' : 's'}. This cannot be undone.`)) return
+                await del.mutateAsync(a.id)
+                navigate({ to: '/accounts' })
+              }}
+            >
+              <Trash2 className="size-4" />
+            </Button>
           </>
         }
       />

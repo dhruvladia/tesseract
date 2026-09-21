@@ -43,6 +43,12 @@ function MetricsPage() {
             tone={a.gapsAddedAfterAcceptance > 0 ? 'warn' : undefined}
           />
           <Stat
+            label="Accepted mostly unread"
+            value={String(a.acceptedMostlyNotDiscussed)}
+            hint="Accepted with 5+ of 8 sections still not discussed"
+            tone={a.acceptedMostlyNotDiscussed > 0 ? 'warn' : undefined}
+          />
+          <Stat
             label="Thin confirmations"
             value={`${a.thinConfirmations}`}
             hint={`Sections confirmed with almost no notes at acceptance · ${a.acceptedWithThinConfirmations} handoff${a.acceptedWithThinConfirmations === 1 ? '' : 's'}`}
@@ -76,6 +82,7 @@ function MetricsPage() {
                     <th className="text-right">Reopens</th>
                     <th className="text-right">Late gaps</th>
                     <th className="text-right">Thin</th>
+                    <th className="text-right">Unread</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -102,6 +109,7 @@ function Row({ r }: { r: HandoffMetricRow }) {
   const reopens = sum((k) => r.handoffs[k]!.reopens)
   const late = sum((k) => r.handoffs[k]!.gapsAddedAfterAcceptance)
   const thin = sum((k) => r.handoffs[k]!.thinConfirmations ?? 0)
+  const unread = sum((k) => r.handoffs[k]!.notDiscussedAtAcceptance ?? 0)
   return (
     <tr className="[&>td]:px-3 [&>td]:py-2">
       <td>
@@ -123,6 +131,7 @@ function Row({ r }: { r: HandoffMetricRow }) {
       <td className={cn('text-right tabular-nums', reopens > 0 && 'text-postsales')}>{reopens || '—'}</td>
       <td className={cn('text-right tabular-nums', late > 0 && 'text-postsales')}>{late || '—'}</td>
       <td className={cn('text-right tabular-nums', thin > 0 && 'text-postsales')}>{thin || '—'}</td>
+      <td className={cn('text-right tabular-nums', unread >= 5 && 'text-postsales')}>{unread || '—'}</td>
     </tr>
   )
 }

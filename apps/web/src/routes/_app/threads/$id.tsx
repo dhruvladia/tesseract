@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { RouteNotFound } from '@/components/route-fallbacks'
+import { ensure } from '@/lib/me'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/common'
@@ -9,8 +11,8 @@ import { useIssueDefaults, useOpenNewIssue } from '@/features/issues/new-issue-d
 import { issuesQuery, threadQuery, useDeleteThread } from '@/lib/queries-issues'
 
 export const Route = createFileRoute('/_app/threads/$id')({
-  loader: ({ context, params }) =>
-    Promise.all([context.queryClient.ensureQueryData(threadQuery(params.id)), context.queryClient.ensureQueryData(issuesQuery({ threadId: params.id }))]),
+  loader: ({ context, params }) => Promise.all([ensure(context.queryClient, threadQuery(params.id)), context.queryClient.ensureQueryData(issuesQuery({ threadId: params.id }))]),
+  notFoundComponent: () => <RouteNotFound what="thread" />,
   component: ThreadPage,
 })
 

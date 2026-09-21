@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx --env-file-if-exists=../../.env src/db/seed.ts",
-    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+    "test": "node --experimental-strip-types --test src/**/*.test.ts",
+    "sim": "tsx --env-file-if-exists=../../.env src/sim/design-partners.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.58",
